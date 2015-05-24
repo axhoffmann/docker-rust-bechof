@@ -1,0 +1,10 @@
+#!/bin/bash
+# -----------------------------------------------------------------------------
+# docker-rust-bechof /start script
+#
+# Authors: Matthias Becker, Axel Hoffmann
+# Updated: Feb 12th, 2015
+# -----------------------------------------------------------------------------
+
+# Run the rust_dedicated server with wine 
+cd /opt/rust && xvfb-run --auto-servernum --server-args='-screen 0 640x480x24:32' wine64 RustDedicated.exe -batchmode +server.hostname "SERVER_NAME_IN_BROWSER" +server.port 28015 +server.identity "rustserver" +server.maxplayers 250 +rcon.port 28016 +rcon.password "RCON_PASSWORD" +rcon.ip 0.0.0.0 -logFile "server/rustserver/out.txt"
