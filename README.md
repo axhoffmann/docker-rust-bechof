@@ -2,6 +2,7 @@
 Builds an advanced docker image that can run a Rust dedicated Server under Linux with Wine.
 
 *Info:* The default port of Rust is `28015` and the RCON port is `28016`.
+        The Log- and Config-Path is /var/rust/rustserver/.
 
 ## Preparations on the docker host
 
