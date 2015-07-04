@@ -19,7 +19,7 @@ SYSCTL=docker-rust
 NIMG="bechof/rust"
 NCON="rust"
 # Hostname of the rust Server
-HOST=FQDN
+HOST=FQDNorIP
 # Port from rcon
 PORT=28016
 # Password for rcon
@@ -34,12 +34,12 @@ DAT=`date +%Y%m%d_%H%M`
 RCON_PROT='\x11\x00\x00\x00\x01\x00\x00\x00\x03\x00\x00\x00%s\x00\x00\n\x13\x00\x00\x00\x8b\x30\x00\x00\x02\x00\x00\x00\x73\x61\x79\x20%s \x00\x00'
 # -----------------------------------------------------------------------------
 
-NV=`egrep "New version" $LOGPATH/Log.Log.txt | wc -l`
+NV=`echo -e "\0\0\0\0TSource Engine Query\0" | nc -u -q 1 50.22.176.67 28016 | tr '[\000-\011\013-\037\177-\377]' '.' | sed 's/\(.*\)\(,cp\)\([0-9]*\)\(,v\)\([0-9]*\)\(.*\)/\5/'`
+CV=`echo -e "\0\0\0\0TSource Engine Query\0" | nc -u -q 1 bechof.de 28016 | tr '[\000-\011\013-\037\177-\377]' '.' | sed 's/\(.*\)\(,cp\)\([0-9]*\)\(,v\)\([0-9]*\)\(.*\)/\5/'`
 
-if [ $NV -ge 1 ]
+if [ $NV -gt $CV ]
     then echo "Update available"
-else 
-    exit
+    else exit
 fi
 
 systemctl status $SYSCTL > /dev/null
@@ -52,9 +52,9 @@ else
     if [ $CP -ge 1 ]
         then
             printf "$RCON_PROT" "$PASSWORD" "$MESSAGE1" | nc -i 1 -q 1 $HOST $PORT
-            sleep 10
+            sleep 5m
             printf "$RCON_PROT" "$PASSWORD" "$MESSAGE2" | nc -i 1 -q 1 $HOST $PORT
-            sleep 10
+            sleep 20
     else
         echo "No Player connected"
     fi             
