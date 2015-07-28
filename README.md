@@ -44,27 +44,36 @@ Before starting the script it must be prepared in this sections:
 
 ```
 # Path from rust server
-LOGPATH="/var/rust/rustserver"
-OLDLOG="/var/rust/rustserver/old_logs"
+LOGPATH=/var/rust/rustserver
+OLDLOG=/var/rust/rustserver/old_logs
 # Path from the Dockerfile of rust
-DOCKFILEPATH="/var/docker/image_src/rust"
+DOCKFILEPATH=/var/docker/image_src/rust
 # systemctl name
 SYSCTL=docker-rust
 # Name of docker-Image
-NIMG="bechof/rust"
-NCON="rust"
-# Hostname of the rust Server
-HOST=FQDNorIP
+NIMG=bechof/rust
+NCON=rust
+# Server which uses the most current version of Rust
+VERSION_CHECK_HOST=50.22.109.226
+VERSION_CHECK_PORT=28016
+# Hostname of the own rust Server
+HOST=IPorFQDN
 # Port from rcon
 PORT=28016
 # Password for rcon
-PASSWORD=Password
+PASSWORD=password
 # Message for the Players that are currently logged in
-MESSAGE1="wird in 5 Minuten neugestartet, da es ein Update gibt. Nach einer kurzen Verzoegerung kann es hier weitergehen!"
+MESSAGE1="wird in 2 Minuten neugestartet, da es ein Update gibt. Nach einer kurzen Verzoegerung kann es hier weitergehen!"
 MESSAGE2="wird jetzt neugestartet, da es ein Update gibt. Nach einer kurzen Verzoegerung kann es hier weitergehen!"
 # Maximum age of the Log-Files in days
-MAXAGE=60  
+MAXAGE=60
+DAT=`date +%Y%m%d_%H%M`
+# Protocol for sending chat message to Rust by RCON
+RCON_PROT='\x11\x00\x00\x00\x01\x00\x00\x00\x03\x00\x00\x00%s\x00\x00\n\x13\x00\x00\x00\x8b\x30\x00\x00\x02\x00\x00\x00\x73\x61\x79\x20%s \x00\x00'
+MAIL1='{ sleep 2; echo "ehlo rustserver.de"; sleep 2; echo "MAIL FROM: rust@rustserver.de"; sleep 2; echo "RCPT TO: mail@address.com"; sleep 2; echo "DATA"; sleep 2; echo "From: Rust Server on rustserver.de <rust@rustserver.de>"; echo "To: Name <mail@address.com>"; echo "Date: $(date -R)"; echo "SUBJECT: Rust Update"; echo ""; echo "Rust wurde geupdated"; echo "."; echo "QUIT"; } | telnet mailserver.com 25 > /dev/null 2>&1'
+MAIL2='{ sleep 2; echo "ehlo rustserver.de"; sleep 2; echo "MAIL FROM: rust@rustserver.de"; sleep 2; echo "RCPT TO: mail@address.com"; sleep 2; echo "DATA"; sleep 2; echo "From: Rust Server on rustserver.de <rust@rustserver.de>"; echo "To: Name <mail@address.com>"; echo "Date: $(date -R)"; echo "SUBJECT: Rust Update"; echo ""; echo "Rust wurde NICHT geupdated"; echo "."; echo "QUIT"; } | telnet mailserver.com 25 > /dev/null 2>&1'
 ```
 
 Note:
 In the ingame chat from Rust there will be wrote "SERVER" before the MESSAGE1 and 2 will appear.
+MAIL1 and MAIL2 must be updated with your correct mail data.
