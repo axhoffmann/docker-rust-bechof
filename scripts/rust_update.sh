@@ -7,64 +7,100 @@
 # -----------------------------------------------------------------------------
 
 # Configuration of the Variables---------------------------------------------------
-
 # Path from rust server
-LOGPATH="/var/rust/rustserver"
-OLDLOG="/var/rust/rustserver/old_logs"
+LOGPATH=/var/rust/rustserver
+OLDLOG=/var/rust/rustserver/old_logs
 # Path from the Dockerfile of rust
-DOCKFILEPATH="/var/docker/image_src/rust"
+DOCKFILEPATH=/var/docker/image_src/rust
 # systemctl name
 SYSCTL=docker-rust
 # Name of docker-Image
-NIMG="bechof/rust"
-NCON="rust"
-# Hostname of the rust Server
-HOST=FQDNorIP
+NIMG=bechof/rust
+NCON=rust
+# Server which uses the most current version of Rust
+VERSION_CHECK_HOST=50.22.109.226
+VERSION_CHECK_PORT=28016
+# Hostname of the own rust Server
+HOST=IPorFQDN
 # Port from rcon
 PORT=28016
 # Password for rcon
-PASSWORD=Password
+PASSWORD=password
 # Message for the Players that are currently logged in
-MESSAGE1="wird in 5 Minuten neugestartet, da es ein Update gibt. Nach einer kurzen Verzoegerung kann es hier weitergehen!"
+MESSAGE1="wird in 2 Minuten neugestartet, da es ein Update gibt. Nach einer kurzen Verzoegerung kann es hier weitergehen!"
 MESSAGE2="wird jetzt neugestartet, da es ein Update gibt. Nach einer kurzen Verzoegerung kann es hier weitergehen!"
 # Maximum age of the Log-Files in days
 MAXAGE=60
 DAT=`date +%Y%m%d_%H%M`
 # Protocol for sending chat message to Rust by RCON
 RCON_PROT='\x11\x00\x00\x00\x01\x00\x00\x00\x03\x00\x00\x00%s\x00\x00\n\x13\x00\x00\x00\x8b\x30\x00\x00\x02\x00\x00\x00\x73\x61\x79\x20%s \x00\x00'
+MAIL1='{ sleep 2; echo "ehlo rustserver.de"; sleep 2; echo "MAIL FROM: rust@rustserver.de"; sleep 2; echo "RCPT TO: mail@address.com"; sleep 2; echo "DATA"; sleep 2; echo "From: Rust Server on rustserver.de <rust@rustserver.de>"; echo "To: Name <mail@address.com>"; echo "Date: $(date -R)"; echo "SUBJECT: Rust Update"; echo ""; echo "Rust wurde geupdated"; echo "."; echo "QUIT"; } | telnet mailserver.com 25 > /dev/null 2>&1'
+MAIL2='{ sleep 2; echo "ehlo rustserver.de"; sleep 2; echo "MAIL FROM: rust@rustserver.de"; sleep 2; echo "RCPT TO: mail@address.com"; sleep 2; echo "DATA"; sleep 2; echo "From: Rust Server on rustserver.de <rust@rustserver.de>"; echo "To: Name <mail@address.com>"; echo "Date: $(date -R)"; echo "SUBJECT: Rust Update"; echo ""; echo "Rust wurde NICHT geupdated"; echo "."; echo "QUIT"; } | telnet mailserver.com 25 > /dev/null 2>&1'
+ECHO=`which echo`
+NC=`which nc`
+TR=`which tr`
+SED=`which sed`
+SYSTEMCTL=`which systemctl`
+DOCKER=`which docker`
+FIND=`which find`
+CUT=`which cut`
 # -----------------------------------------------------------------------------
 
-NV=`echo -e "\0\0\0\0TSource Engine Query\0" | nc -u -q 1 50.22.176.67 28016 | tr '[\000-\011\013-\037\177-\377]' '.' | sed 's/\(.*\)\(,cp\)\([0-9]*\)\(,v\)\([0-9]*\)\(.*\)/\5/'`
-CV=`echo -e "\0\0\0\0TSource Engine Query\0" | nc -u -q 1 bechof.de 28016 | tr '[\000-\011\013-\037\177-\377]' '.' | sed 's/\(.*\)\(,cp\)\([0-9]*\)\(,v\)\([0-9]*\)\(.*\)/\5/'`
+NV=`$ECHO -e "\0\0\0\0TSource Engine Query\0" | $NC -u -q 1 $VERSION_CHECK_HOST $VERSION_CHECK_PORT | $TR '[\000-\011\013-\037\177-\377]' '.' | $SED 's/\(.*\)\(,cp\)\([0-9]*\)\(,v\)\([0-9]*\)\(.*\)/\5/'`
+CV=`$ECHO -e "\0\0\0\0TSource Engine Query\0" | $NC -u -q 1 $HOST $PORT | $TR '[\000-\011\013-\037\177-\377]' '.' | $SED 's/\(.*\)\(,cp\)\([0-9]*\)\(,v\)\([0-9]*\)\(.*\)/\5/'`
+
+$ECHO $NV "new Version" > /var/rust/rust_update_$DAT.log
+$ECHO $CV "current Version" >> /var/rust/rust_update_$DAT.log
+
+if [ -z $NV ]
+    then exit
+fi
+
+if [ -z $CV ]
+    then exit
+fi
+
+if [ $NV = $CV ]
+        then NV=`egrep "New version" $LOGPATH/Log.Log.txt | wc -l`
+            if [ $NV -ge 1 ]
+               then NV=99999
+               else exit
+            fi
+fi
+
 
 if [ $NV -gt $CV ]
-    then echo "Update available"
+    then $ECHO "Update available"
     else exit
 fi
 
-systemctl status $SYSCTL > /dev/null
+sleep 3m
+
+#$SYSTEMCTL status $SYSCTL > /dev/null
+$SYSTEMCTL status $SYSCTL >> /var/rust/rust_update_$DAT.log
 P1=$?
 
 if [ $P1 != 0 ]
-    then echo "Rust is not running"
+    then $ECHO "Rust is not running"
 else 
-     CP=`echo -e "\0\0\0\0TSource Engine Query\0" | nc -u -q 1 $HOST $PORT | tr '[\000-\011\013-\037\177-\377]' '.' | sed 's/\(.*\)\(@.mp\)\([0-9]*\)\(,cp\)\([0-9]*\)\(,\)\(.*\)/\5/'`
+    CP=`$ECHO -e "\0\0\0\0TSource Engine Query\0" | $NC -u -q 1 $HOST $PORT | $TR '[\000-\011\013-\037\177-\377]' '.' | $SED 's/\(.*\)\(@.mp\)\([0-9]*\)\(,cp\)\([0-9]*\)\(,\)\(.*\)/\5/'`
     if [ $CP -ge 1 ]
         then
             printf "$RCON_PROT" "$PASSWORD" "$MESSAGE1" | nc -i 1 -q 1 $HOST $PORT
-            sleep 5m
+            sleep 2m
             printf "$RCON_PROT" "$PASSWORD" "$MESSAGE2" | nc -i 1 -q 1 $HOST $PORT
-            sleep 20
+            sleep 10
+            $ECHO "benachrichtigung ist raus" >> /var/rust/rust_update_$DAT.log
     else
-        echo "No Player connected"
+        $ECHO "No Player connected" >> /var/rust/rust_update_$DAT.log
     fi             
-    systemctl stop $SYSCTL
+    $SYSTEMCTL stop $SYSCTL >> /var/rust/rust_update_$DAT.log
 fi
 
-docker rm $NCON
-docker rmi $NIMG
+$DOCKER rm $NCON >> /var/rust/rust_update_$DAT.log
+$DOCKER rmi $NIMG >> /var/rust/rust_update_$DAT.log
 cd $DOCKFILEPATH
-docker build -t $NIMG .
+$DOCKER build -t $NIMG . >> /var/rust/rust_update_$DAT.log
 
 # tidy up
 
@@ -83,26 +119,28 @@ done
 
 find $OLDLOG -name "*.txt" -type f -mtime +$MAXAGE -delete
 
-# end of tidy up
+#end of tidy up
 
-docker run -u 556 -d -p=28015:28015/udp -p=28016:28016/udp -p=27015:27015/tcp -p=27015:27015/udp -p=28015:28015/tcp -p=28016:28016/tcp -v=/var/rust:/data --name $NCON "$NIMG:latest"
+$DOCKER run -u 556 -d -p=28015:28015/udp -p=28016:28016/udp -p=28015:28015/tcp -p=28016:28016/tcp -v=/var/rust:/data --name $NCON "$NIMG:latest" >> /var/rust/rust_update_$DAT.log
 
-docker stop $NCON
+$DOCKER stop $NCON >> /var/rust/rust_update_$DAT.log
 
-systemctl start $SYSCTL
+$SYSTEMCTL start $SYSCTL >> /var/rust/rust_update_$DAT.log
 
-systemctl status $SYSCTL > /dev/null
+$SYSTEMCTL status $SYSCTL > /dev/null
 P2=$?
 
 if [ $P2 = 0 ]
     then 
-        echo "Update und Start erfolgreich"
+        echo "Update und Start erfolgreich" >> /var/rust/rust_update_$DAT.log
+        sh -c "$MAIL1"
 else 
-    systemctl status $SYSCTL > /dev/null
+    $SYSTEMCTL status $SYSCTL > /dev/null
     P3=$?
     if [ $P3 != 0 ]
         then
-            echo "FEHLER!!!"
+            echo "FEHLER!!!" >> /var/rust/rust_update_$DAT.log
+            sh -c "$MAIL2"
             exit
     fi
 fi
