@@ -52,9 +52,6 @@ ADD    ${STEAMCMD_URL} /opt/steamcmd/
 RUN    cd /opt/steamcmd && tar -xzf steamcmd*.tar.gz && rm *.tar.gz
 
 # Expose ports for rust
-#EXPOSE 80
-EXPOSE 27015/udp
-EXPOSE 27015/tcp
 EXPOSE 28015/tcp
 EXPOSE 28015/udp
 EXPOSE 28016/tcp
